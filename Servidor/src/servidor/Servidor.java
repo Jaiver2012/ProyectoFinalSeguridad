@@ -15,14 +15,18 @@ import java.net.Socket;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Servidor {
 
@@ -49,6 +53,7 @@ public class Servidor {
 	private byte[]     secretKey;
 	private String     secretMessage;
 
+	private SecretKeySpec claveAES;
 
     
 	/**
@@ -132,6 +137,9 @@ public class Servidor {
         	receivedData = new byte[1024];
         	bis = new BufferedInputStream(socket.getInputStream());
         	DataInputStream dis=new DataInputStream(socket.getInputStream());
+        	//Prueba de desencriptar con AES
+        	String tes = desencriptar(dis.readUTF());
+        	System.out.println(tes);
         	//Recibimos el nombre del fichero
         	file = dis.readUTF();
         	file = file.substring(file.indexOf('\\')+1,file.length());
@@ -149,7 +157,31 @@ public class Servidor {
 		}
 		
 	}
+	private void crearClave() throws Exception {
+        byte[] claveEncriptacion = secretKey;
+         
+        MessageDigest sha = MessageDigest.getInstance("SHA-1");
+         
+        claveEncriptacion = sha.digest(claveEncriptacion);
+        claveEncriptacion = Arrays.copyOf(claveEncriptacion, 16);
+         
+        SecretKeySpec secretKey = new SecretKeySpec(claveEncriptacion, "AES");
+ 
+        claveAES = secretKey;
+    }
 	
+	public String desencriptar(String datosEncriptados) throws Exception {
+        crearClave();
+ 
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+        cipher.init(Cipher.DECRYPT_MODE, claveAES);
+         
+        byte[] bytesEncriptados = Base64.getDecoder().decode(datosEncriptados);
+        byte[] datosDesencriptados = cipher.doFinal(bytesEncriptados);
+        String datos = new String(datosDesencriptados);
+         
+        return datos;
+    }
 	
 	/**
 	 * 

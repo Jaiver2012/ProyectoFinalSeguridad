@@ -13,15 +13,19 @@ import java.net.Socket;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
 
+import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Cliente {
 
@@ -36,6 +40,7 @@ public class Cliente {
     private String[] mensajeRecibido;
     private Scanner teclado;
     
+    private SecretKeySpec claveAES;
     
     //recibir archivo
     BufferedInputStream bis;
@@ -109,6 +114,7 @@ public class Cliente {
 
             		}
 
+            		
 
             		//-----------------------------------------------------------------------------------------------------------------------------
             		// Send file to server
@@ -146,6 +152,8 @@ public class Cliente {
              BufferedOutputStream bos = new BufferedOutputStream(client.getOutputStream());
              //Send name of file
              dataOutputOne =new DataOutputStream(client.getOutputStream());
+             //prueba de encriptación con AES
+             dataOutputOne.writeUTF(encriptar("Hola, este es un mensaje de prueba"));
              dataOutputOne.writeUTF(localFile.getName());
              //Send file
              byteArray = new byte[8192];
@@ -164,6 +172,31 @@ public class Cliente {
 		}
 	}
 	
+	private void crearClave() throws Exception {
+        byte[] claveEncriptacion = secretKey;
+         
+        MessageDigest sha = MessageDigest.getInstance("SHA-1");
+        claveEncriptacion = sha.digest(claveEncriptacion);
+        claveEncriptacion = Arrays.copyOf(claveEncriptacion, 16);
+         
+        SecretKeySpec secretKey = new SecretKeySpec(claveEncriptacion, "AES");
+ 
+        claveAES = secretKey;
+    }
+
+	public String encriptar(String mensaje) throws Exception {
+        crearClave();
+         
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");        
+        cipher.init(Cipher.ENCRYPT_MODE, claveAES);
+ 
+        byte[] datosEncriptar = mensaje.getBytes("UTF-8");
+        byte[] bytesEncriptados = cipher.doFinal(datosEncriptar);
+        String encriptado = Base64.getEncoder().encodeToString(bytesEncriptados);
+        
+        return encriptado;
+    }
+
 	/**
 	 * 
 	 */
