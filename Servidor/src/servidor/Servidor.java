@@ -1,7 +1,15 @@
 package servidor;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyFactory;
@@ -25,6 +33,13 @@ public class Servidor {
 	private DataOutputStream salida;
 	private DataInputStream entrada;
 	private String[] mensajeRecibido;
+	
+	BufferedInputStream bis;
+	 BufferedOutputStream bos;
+	 
+	byte[] receivedData;
+	 int in;
+	 String file;
 	
 	
 	//Datos para el intercambio de claves  (diffie-hellman)
@@ -57,13 +72,15 @@ public class Servidor {
             while(!msn.equals("x")){
                 
             	mensajeRecibido = entrada.readUTF().split("-");
-            	
+            	//System.out.println("esto llego:"+mensajeRecibido[2]);
             	if(mensajeRecibido[0].equals("1")) {
             		//Recibimos la clave publica del cliente
             		receivePublicKeyFrom(mensajeRecibido[1]);
             		generateCommonSecretKey();
             		System.out.println("Clave secreta en común en el servidor: " + Base64.getEncoder().encodeToString(secretKey));
-                	//convertir publicKey del servidor a byte            
+                	//Nombre del archivo a transferir
+            		//System.out.println("Nombre del archivo a tranferir: " + entrada.readUTF());
+            		//convertir publicKey del servidor a byte            
                 	byte[] byte_pubkey = publicKey.getEncoded();
 
                 	//convertir byte a String 
@@ -74,6 +91,9 @@ public class Servidor {
             		
                 	// Hasta aqui lo que se ha hecho es generar una clave secreta en común
             		
+                	//se llama el enviar archvo
+                	sendFile(mensajeRecibido[2]);
+                	
             	}
  
             }
@@ -83,6 +103,31 @@ public class Servidor {
 			// TODO: handle exception
 		}
 	}
+	
+	public void sendFile(String pathfile){
+		
+		try {
+			receivedData = new byte[1024];
+			 bis = new BufferedInputStream(socket.getInputStream());
+			// DataInputStream dis=new DataInputStream(socket.getInputStream());
+			 
+			 //Recibimos el nombre del fichero
+			 file = pathfile;
+			 file = file.substring(file.indexOf('\\')+1,file.length());
+			 //Para guardar fichero recibido
+			 bos = new BufferedOutputStream(new FileOutputStream(file));
+			 while ((in = bis.read(receivedData)) != -1){
+				 bos.write(receivedData,0,in);
+				 }
+				 bos.close();
+				
+		}catch(Exception e) {
+			
+		}
+		
+	}
+	
+	
 	
 	public void generateKeys() {
 		try {
