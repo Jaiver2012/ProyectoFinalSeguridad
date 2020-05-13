@@ -185,6 +185,7 @@ public class Servidor {
         	DataInputStream dis=new DataInputStream(socket.getInputStream());
         	//Recibimos el nombre del fichero
         	file = desencriptar(dis.readUTF());
+        	String nombree = file;
         	file = file.substring(file.indexOf('\\')+1,file.length());
         	//Para guardar fichero recibido
         	bos = new BufferedOutputStream(new FileOutputStream(file));
@@ -192,6 +193,7 @@ public class Servidor {
         		bos.write(receivedData,0,in);
         	}
         	System.out.println("Archivo guardado exitosamente");
+        	obtenerHASHComoString(nombree);
         	bos.close();
         	dis.close();
 

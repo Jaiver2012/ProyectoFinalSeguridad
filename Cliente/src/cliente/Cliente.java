@@ -206,8 +206,8 @@ public class Cliente {
              while ((in = bis.read(byteArray)) != -1){
              	bos.write(byteArray,0,in);
              }
-             System.out.println("Archivo enviado exitosamente"
-            		 );
+             System.out.println("Archivo enviado exitosamente");
+             obtenerHASHComoString(fileName);
              bis.close();
              bos.close();
 
