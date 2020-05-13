@@ -28,7 +28,7 @@ public class Cliente {
 	//Datos conexión
 	
 	private int port=9000;
-	private String ip="192.168.56.1";
+	private String ip="localhost";
 	private Socket client;
     private DataOutputStream salida;
     private DataOutputStream pathFile;
