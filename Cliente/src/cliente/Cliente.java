@@ -30,9 +30,9 @@ public class Cliente {
 	private int port=9000;
 	private String ip="localhost";
 	private Socket client;
-    private DataOutputStream salida;
+	private DataInputStream dataInputOne;
+    private DataOutputStream dataOutputOne;
     private DataOutputStream pathFile;
-    private DataInputStream entrada;
     private String[] mensajeRecibido;
     private Scanner teclado;
     
@@ -43,7 +43,7 @@ public class Cliente {
     int in;
     byte[] byteArray;
     //Fichero a transferir
-     String filename = "";
+     String fileName = "";
     
     
     //Datos para el intercambio de claves  (diffie-hellman)
@@ -55,88 +55,118 @@ public class Cliente {
     private String     secretMessage;
 	
 	
+    /**
+     * 
+     * @param args
+     */
 	public static void main(String[] args) {
-		Cliente nuevoCliente = new Cliente();
-		nuevoCliente.generateKeys();
-		nuevoCliente.iniciarCliente();
+		Cliente newClient = new Cliente();
+		newClient.generateKeys();
+		newClient.initClient();
 	}
-
-	private void iniciarCliente() {
+	
+	/**
+	 * 
+	 */
+	private void initClient() {
 		
 		teclado = new Scanner(System.in);
         try{
-        	client= new Socket(ip,port);
-            salida = new DataOutputStream(client.getOutputStream());
-            entrada = new DataInputStream(client.getInputStream());
-            
-           
-        
-         
-          //----------
-            String msn = "";
-            while(!msn.equals("x")){
-                System.out.println("Escriba el nombre del archivo para iniciar");
-                msn = teclado.nextLine();
-                
-                if(!msn.contentEquals("")) {
-                	
-                	//convertir publicKey del cliente a byte            
-                	byte[] byte_pubkey = publicKey.getEncoded();
-
-                	//convertir byte a String 
-                	String publicKeyString = Base64.getEncoder().encodeToString(byte_pubkey);
-           
-                	//Enviamos la publickey convertida en string al servidor
-                	filename=msn;
-                	salida.writeUTF("1-" + publicKeyString+"-"+msn);
-                
-                	
-                }
-             
-                mensajeRecibido = entrada.readUTF().split("-");
+            System.out.println("---------------------------------------------------------------------------------------------------------");
+            System.out.println("Escriba la ruta del archivo para iniciar la ejecución. Si desea salir del programa escriba 'exit'.");
+            fileName = teclado.nextLine();
+            while(!fileName.equals("exit") && !fileName.contentEquals("")){
             	
-            	if(mensajeRecibido[0].equals("1")) {
-            		//Recibimos la clave publica del cliente
-            		receivePublicKeyFrom(mensajeRecibido[1]);
-            		generateCommonSecretKey();
+            	System.out.println("Creando conexión con el servidor en "+ ip +":"+port+"...");
+            	client= new Socket(ip,port);
+            	System.out.println("¡Conexión exitosa!");
+            	
+            	dataOutputOne = new DataOutputStream(client.getOutputStream());
+            	dataInputOne = new DataInputStream(client.getInputStream());
+            	
+
+            		//convertir publicKey del cliente a byte            
+            		byte[] byte_pubkey = publicKey.getEncoded();
+
+            		//convertir byte a String 
+            		String publicKeyString = Base64.getEncoder().encodeToString(byte_pubkey);
+
+            		//Enviamos la publickey convertida en string al servidor
+
+            		dataOutputOne.writeUTF("1-" + publicKeyString+"-"+fileName);
+
+
+
+            		mensajeRecibido = dataInputOne.readUTF().split("-");
+
+            		if(mensajeRecibido[0].equals("1")) {
+            			//Recibimos la clave publica del cliente
+            			receivePublicKeyFrom(mensajeRecibido[1]);
+            			generateCommonSecretKey();
+
+            			// Hasta aqui lo que se ha hecho es generar una clave secreta en común
+            			System.out.println("Clave secreta en común en el cliente: " + Base64.getEncoder().encodeToString(secretKey));
+
+            		}
+
+
+            		//-----------------------------------------------------------------------------------------------------------------------------
+            		// Send file to server
+            		//-----------------------------------------------------------------------------------------------------------------------------
+            		sendFile();
+
+
+            		//-----------------------------------------------------------------------------------------------------------------------------
+            		// Run again
+            		//-----------------------------------------------------------------------------------------------------------------------------
             		
-            		// Hasta aqui lo que se ha hecho es generar una clave secreta en común
-            		System.out.println("Clave secreta en común en el cliente: " + Base64.getEncoder().encodeToString(secretKey));
-            		
-            		//recibimos 
-            		makeFile();
-            	}
-              
+            		System.out.println("---------------------------------------------------------------------------------------------------------");
+            		System.out.println("Escriba la ruta del archivo para iniciar la ejecución. Si desea salir del programa escriba 'exit'.");
+            		fileName = teclado.nextLine();
+            	
             }
+            System.out.println("---------------------------------------------------------------------------------------------------------");
+            System.out.println("PROGRAMA TERMINADO.");
             client.close();
         }catch(Exception e){
- 
+
         }
 	}
 	
-	public void makeFile() {
+	/**
+	 * 
+	 */
+	public void sendFile() {
 		
 		try {
-			 final File localFile = new File( filename );
-			 bis = new BufferedInputStream(new FileInputStream(localFile));
-			 bos = new BufferedOutputStream(client.getOutputStream());
-			 //Enviamos el nombre del fichero
-			 DataOutputStream dos=new DataOutputStream(client.getOutputStream());
-			 dos.writeUTF(localFile.getName());
-			 //Enviamos el fichero
-			 byteArray = new byte[8192];
-			 while ((in = bis.read(byteArray)) != -1){
-			 bos.write(byteArray,0,in);
-			 }
-			 
-			bis.close();
-			bos.close();
+
+			 System.out.println("Enviando archivo al servidor...");
+             final File localFile = new File( fileName );
+             BufferedInputStream  bis = new BufferedInputStream(new FileInputStream(localFile));
+             BufferedOutputStream bos = new BufferedOutputStream(client.getOutputStream());
+             //Send name of file
+             dataOutputOne =new DataOutputStream(client.getOutputStream());
+             dataOutputOne.writeUTF(localFile.getName());
+             //Send file
+             byteArray = new byte[8192];
+             while ((in = bis.read(byteArray)) != -1){
+             	bos.write(byteArray,0,in);
+             }
+             System.out.println("Archivo enviado exitosamente");
+             bis.close();
+             bos.close();
+
+			
 			
 		}catch (Exception e) {
 			// TODO: handle exception
+			System.out.println(e);
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	public void generateKeys() {
 		try {
 			
@@ -153,6 +183,12 @@ public class Cliente {
 	    }
 	}
 	
+	/**
+	 * 
+	 * @param mensajeRecibido2
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 */
 	public void receivePublicKeyFrom(String mensajeRecibido2) throws InvalidKeySpecException, NoSuchAlgorithmException {
 		
 		byte[] publicBytes = Base64.getDecoder().decode(mensajeRecibido2);
@@ -160,7 +196,9 @@ public class Cliente {
 	    KeyFactory keyFactory = KeyFactory.getInstance("DH");
 	    receivedPublicKey = keyFactory.generatePublic(keySpec);
     }
-
+	/**
+	 * 
+	 */
 	public void generateCommonSecretKey() {
 
         try {

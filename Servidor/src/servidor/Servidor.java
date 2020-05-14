@@ -26,52 +26,63 @@ import javax.crypto.KeyAgreement;
 
 public class Servidor {
 
-	//Datos de conexion
+	//Data for connection
 	private ServerSocket server;
 	private Socket socket;
-	private int puerto=9000;
-	private DataOutputStream salida;
-	private DataInputStream entrada;
+	private int port=9000;
+	private DataInputStream dataInputOne;
+	private DataOutputStream dataOutputOne;
 	private String[] mensajeRecibido;
 	
 	BufferedInputStream bis;
-	 BufferedOutputStream bos;
-	 
-	byte[] receivedData;
-	 int in;
-	 String file;
-	
-	
-	//Datos para el intercambio de claves  (diffie-hellman)
-	
+	BufferedOutputStream bos;
 
-    private PrivateKey privateKey;
-    private PublicKey  publicKey;
-    private PublicKey  receivedPublicKey;
-    private byte[]     secretKey;
-    private String     secretMessage;
+	byte[] receivedData;
+	int in;
+	String file;
+
+
+	//Datos para el intercambio de claves  (diffie-hellman)
+	private PrivateKey privateKey;
+	private PublicKey  publicKey;
+	private PublicKey  receivedPublicKey;
+	private byte[]     secretKey;
+	private String     secretMessage;
+
+
     
-    
-    
-	
+	/**
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		
-		Servidor nuevoServidor = new Servidor();
-		nuevoServidor.generateKeys();
-		nuevoServidor.iniciarServidor();
+		Servidor newServer = new Servidor();
+		newServer.generateKeys();
+		newServer.initServer();
 	}
-
-	private  void iniciarServidor() {
+	
+	/**
+	 * 
+	 */
+	private  void initServer() {
+		
 		try {
-			server= new ServerSocket(puerto);
+			System.out.println("Iniciando servidor en el puerto: "+port);
+			server= new ServerSocket(port);
 			socket= new Socket();
-			socket=server.accept();
-			entrada= new DataInputStream(socket.getInputStream());
-			salida= new DataOutputStream(socket.getOutputStream());
-			String msn = "";
-            while(!msn.equals("x")){
+			System.out.println("-------------------------------------------------------------------------------------------------------");
+			System.out.println("Esperando la conexión con el cliente por el puerto "+ port+ ":localhost...");
+			
+            while(true){
+            	
+            	socket=server.accept();
+            	System.out.println("Conectado a " + socket.getRemoteSocketAddress()); 
+            	
+            	dataInputOne= new DataInputStream(socket.getInputStream());
+            	dataOutputOne= new DataOutputStream(socket.getOutputStream());
                 
-            	mensajeRecibido = entrada.readUTF().split("-");
+            	mensajeRecibido = dataInputOne.readUTF().split("-");
             	//System.out.println("esto llego:"+mensajeRecibido[2]);
             	if(mensajeRecibido[0].equals("1")) {
             		//Recibimos la clave publica del cliente
@@ -87,42 +98,54 @@ public class Servidor {
                 	String publicKeyString = Base64.getEncoder().encodeToString(byte_pubkey);
            
                 	//Mandar la publickey convertidad en string al cliente
-                	salida.writeUTF("1-" + publicKeyString);
+                	dataOutputOne.writeUTF("1-" + publicKeyString);
             		
                 	// Hasta aqui lo que se ha hecho es generar una clave secreta en común
             		
-                	//se llama el enviar archvo
-                	sendFile(mensajeRecibido[2]);
+                	
+                	
+                	//-----------------------------------------------------------------------------------------------------------------------------
+                	// Recieve file of client
+                	//-----------------------------------------------------------------------------------------------------------------------------
+                	recieveFile();
                 	
             	}
- 
+            	
+            	System.out.println("-------------------------------------------------------------------------------------------------------");
+    			System.out.println("Esperando la conexión con el cliente por el puerto "+ port+ ":localhost...");
             }
-			socket.close();
+			//socket.close();
 		} 
 		catch (Exception e) {
 			// TODO: handle exception
 		}
 	}
 	
-	public void sendFile(String pathfile){
+	/**
+	 * 
+	 * @param pathfile
+	 */
+	public void recieveFile(){
 		
 		try {
-			receivedData = new byte[1024];
-			 bis = new BufferedInputStream(socket.getInputStream());
-			// DataInputStream dis=new DataInputStream(socket.getInputStream());
-			 
-			 //Recibimos el nombre del fichero
-			 file = pathfile;
-			 file = file.substring(file.indexOf('\\')+1,file.length());
-			 //Para guardar fichero recibido
-			 bos = new BufferedOutputStream(new FileOutputStream(file));
-			 while ((in = bis.read(receivedData)) != -1){
-				 bos.write(receivedData,0,in);
-				 }
-				 bos.close();
-				
+			System.out.println("Recibiendo archivo del cliente");
+        	receivedData = new byte[1024];
+        	bis = new BufferedInputStream(socket.getInputStream());
+        	DataInputStream dis=new DataInputStream(socket.getInputStream());
+        	//Recibimos el nombre del fichero
+        	file = dis.readUTF();
+        	file = file.substring(file.indexOf('\\')+1,file.length());
+        	//Para guardar fichero recibido
+        	bos = new BufferedOutputStream(new FileOutputStream(file));
+        	while ((in = bis.read(receivedData)) != -1){
+        		bos.write(receivedData,0,in);
+        	}
+        	System.out.println("Archivo guardado exitosamente");
+        	bos.close();
+        	dis.close();
+
 		}catch(Exception e) {
-			
+			System.out.println(e);
 		}
 		
 	}
