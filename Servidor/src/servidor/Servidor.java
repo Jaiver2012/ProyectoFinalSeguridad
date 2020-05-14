@@ -137,11 +137,8 @@ public class Servidor {
         	receivedData = new byte[1024];
         	bis = new BufferedInputStream(socket.getInputStream());
         	DataInputStream dis=new DataInputStream(socket.getInputStream());
-        	//Prueba de desencriptar con AES
-        	String tes = desencriptar(dis.readUTF());
-        	System.out.println(tes);
         	//Recibimos el nombre del fichero
-        	file = dis.readUTF();
+        	file = desencriptar(dis.readUTF());
         	file = file.substring(file.indexOf('\\')+1,file.length());
         	//Para guardar fichero recibido
         	bos = new BufferedOutputStream(new FileOutputStream(file));

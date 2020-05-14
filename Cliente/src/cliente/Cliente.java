@@ -153,8 +153,7 @@ public class Cliente {
              //Send name of file
              dataOutputOne =new DataOutputStream(client.getOutputStream());
              //prueba de encriptación con AES
-             dataOutputOne.writeUTF(encriptar("Hola, este es un mensaje de prueba"));
-             dataOutputOne.writeUTF(localFile.getName());
+             dataOutputOne.writeUTF(encriptar(localFile.getName()));
              //Send file
              byteArray = new byte[8192];
              while ((in = bis.read(byteArray)) != -1){
