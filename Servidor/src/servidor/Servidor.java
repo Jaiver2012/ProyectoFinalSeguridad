@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -125,6 +126,51 @@ public class Servidor {
 			// TODO: handle exception
 		}
 	}
+	/**
+	 * 
+	 * @param nombreArchivo
+	 * @return
+	 * @throws Exception
+	 */
+	public static byte[] obtenerChecksum(String nombreArchivo) throws Exception {
+        InputStream fis = new FileInputStream(nombreArchivo);
+
+        byte[] buffer = new byte[1024];
+        MessageDigest complete = MessageDigest.getInstance("SHA-1");
+        int numRead;
+        // Leer el archivo pedazo por pedazo
+        do {
+            // Leer datos y ponerlos dentro del búfer
+            numRead = fis.read(buffer);
+            // Si se leyó algo, se actualiza el MessageDigest
+            if (numRead > 0) {
+                complete.update(buffer, 0, numRead);
+            }
+        } while (numRead != -1);
+
+        fis.close();
+        // Devolver el arreglo de bytes
+        return complete.digest();
+    }
+
+	/**
+	 * 
+	 * @param nombreArchivo
+	 * @return
+	 * @throws Exception
+	 */
+    public static String obtenerHASHComoString(String nombreArchivo) throws Exception {
+        // Convertir el arreglo de bytes a cadena
+        byte[] b = obtenerChecksum(nombreArchivo);
+        StringBuilder resultado = new StringBuilder();
+
+        for (byte unByte : b) {
+            resultado.append(Integer.toString((unByte & 0xff) + 0x100, 16).substring(1));
+        }
+        System.out.println("Hash del archivo desde el servidor");
+        System.out.println(resultado.toString());
+        return resultado.toString();
+    }
 	
 	/**
 	 * 
